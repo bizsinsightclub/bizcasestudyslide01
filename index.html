@@ -1210,18 +1210,37 @@ table.mt tr:nth-child(even) td{background:var(--bgo)}
 
   var slides=document.querySelectorAll('.s');
   var cur=0;
-  function go(n){
+  
+  // 양방향 동기화를 위한 채널 설정
+  const syncChannel = new BroadcastChannel('lego_sync');
+
+  function go(n, isExternal = false){
     slides[cur].classList.remove('on');
-    cur=Math.max(0,Math.min(n,slides.length-1));
+    cur = Math.max(0, Math.min(n, slides.length - 1));
     slides[cur].classList.add('on');
-    document.getElementById('sc').textContent=(cur+1)+' / '+slides.length;
+    document.getElementById('sc').textContent = (cur + 1) + ' / ' + slides.length;
+
+    // 내가 넘긴 거라면 프롬프터에도 알려줌
+    if(!isExternal) {
+      syncChannel.postMessage({ slide: cur });
+    }
   }
-  document.getElementById('pBtn').onclick=function(){go(cur-1)};
-  document.getElementById('nBtn').onclick=function(){go(cur+1)};
-  document.addEventListener('keydown',function(e){
-    if(e.key==='ArrowRight'||e.key==='ArrowDown'||e.key===' '){e.preventDefault();go(cur+1);}
-    if(e.key==='ArrowLeft'||e.key==='ArrowUp'){e.preventDefault();go(cur-1);}
+
+  // 프롬프터에서 보낸 신호 수신
+  syncChannel.onmessage = (e) => {
+    if (e.data && typeof e.data.slide === 'number') {
+      go(e.data.slide, true);
+    }
+  };
+
+  document.getElementById('pBtn').onclick = () => go(cur - 1);
+  document.getElementById('nBtn').onclick = () => go(cur + 1);
+  
+  document.addEventListener('keydown', (e) => {
+    if(['ArrowRight', 'ArrowDown', ' '].includes(e.key)){ e.preventDefault(); go(cur + 1); }
+    if(['ArrowLeft', 'ArrowUp'].includes(e.key)){ e.preventDefault(); go(cur - 1); }
   });
+
   go(0);
 })();
 </script>
