@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LEGO Presentation Prompt - Minimalist</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Noto+Sans+KR:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { 
+            --bg: #000000; 
+            --text: #ffffff; 
+            --dim: #444444; 
+            --border: #222222;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-user-select: none; user-select: none; }
+        body { 
+            background: var(--bg); 
+            color: var(--text); 
+            font-family: 'Inter', 'Noto Sans KR', sans-serif; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+        }
+        
+        /* 상단 바: 미니멀 정보 지표 */
+        header { 
+            padding: 20px 40px; 
+            background: #000; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            border-bottom: 1px solid var(--border);
+        }
+        .time-box { display: flex; gap: 40px; font-size: 14px; letter-spacing: 0.1em; color: var(--dim); }
+        .time-box b { color: #fff; margin-left: 8px; font-variant-numeric: tabular-nums; }
+        
+        .status-tag { font-size: 11px; font-weight: 900; color: #fff; border: 1px solid #fff; padding: 4px 10px; letter-spacing: 0.2em; }
+
+        #main { flex: 1; display: flex; }
+        
+        /* 좌측: 슬라이드 정보 및 썸네일 */
+        #sidebar { 
+            width: 300px; 
+            background: #000; 
+            border-right: 1px solid var(--border); 
+            display: flex; 
+            flex-direction: column; 
+            padding: 30px; 
+        }
+        .thumb-container { 
+            width: 100%; 
+            aspect-ratio: 16/9; 
+            position: relative; 
+            overflow: hidden; 
+            border: 1px solid var(--border); 
+            background: #111;
+        }
+        iframe { 
+            width: 1920px; 
+            height: 1080px; 
+            transform: scale(0.125); 
+            transform-origin: top left; 
+            border: none; 
+            pointer-events: none; 
+        }
+        
+        .slide-meta { margin-top: 30px; }
+        .slide-num { font-size: 40px; font-weight: 900; letter-spacing: -0.05em; color: #fff; }
+        .slide-label { font-size: 13px; color: var(--dim); text-transform: uppercase; margin-top: 10px; letter-spacing: 0.1em; }
+        .slide-title { font-size: 16px; color: #fff; font-weight: 700; margin-top: 4px; line-height: 1.4; word-break: keep-all; }
+
+        /* 우측: 순수 텍스트 스크립트 */
+        #script-area { 
+            flex: 1; 
+            padding: 80px 100px; 
+            overflow-y: auto; 
+            cursor: pointer;
+            background: #000;
+        }
+        
+        .script-content { 
+            font-size: 44px; /* 대형 폰트로 가독성 확보 */
+            font-weight: 400; 
+            line-height: 1.7; 
+            word-break: keep-all;
+            color: #fff;
+            text-align: justify;
+        }
+        
+        /* 강조 텍스트 스타일 */
+        .script-content b { 
+            color: #fff; 
+            font-weight: 900; 
+            text-decoration: underline;
+            text-underline-offset: 8px;
+            text-decoration-thickness: 2px;
+        }
+
+        /* 하단 내비게이션 가이드 */
+        .nav-guide { 
+            position: fixed; 
+            bottom: 30px; 
+            right: 40px; 
+            display: flex; 
+            gap: 10px;
+        }
+        .nav-btn { 
+            background: #000; 
+            color: #fff; 
+            border: 1px solid var(--border); 
+            padding: 12px 24px; 
+            font-size: 12px; 
+            font-weight: 700; 
+            cursor: pointer; 
+        }
+        .nav-btn:hover { background: #fff; color: #000; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="time-box">
+        <div>CLOCK <b id="clock">00:00:00</b></div>
+        <div>RUNNING <b id="elapsed">00:00:00</b></div>
+    </div>
+    <div class="status-tag">LIVE SYNC ACTIVE</div>
+</header>
+
+<div id="main">
+    <div id="sidebar">
+        <div class="thumb-container">
+            <iframe id="slideFrame" src="index.html"></iframe>
+        </div>
+        <div class="slide-meta">
+            <div class="slide-num" id="s-num">01</div>
+            <div class="slide-label">Current Chapter</div>
+            <div class="slide-title" id="s-title">INTRO</div>
+        </div>
+    </div>
+    
+    <div id="script-area">
+        <div id="text-view" class="script-content"></div>
+    </div>
+</div>
+
+<div class="nav-guide">
+    <button class="nav-btn" onclick="goSlide(currentSlide - 1)">PREV</button>
+    <button class="nav-btn" onclick="goSlide(currentSlide + 1)">NEXT</button>
+</div>
+
+<script>
+    // [Script Data]
+    const scripts = [
+        { title: "타이틀", text: "안녕하세요. 국제경영 6조 발표를 맡은 <b>김민석</b>입니다. 저희 조는 오늘 '장난감 그 이상의 브랜드', 레고가 지난 90년간 직면해 온 수많은 <b>'긴장과 역설'</b>을 어떻게 경영 전략으로 승화시켰는지에 대해 말씀드리고자 합니다. 강경구, 오승현, 윤은희, 하유진 학우와 함께 준비했습니다." },
+        { title: "AGENDA", text: "오늘 발표는 기업 개요를 시작으로, 케이스의 핵심 질문에 대한 답변, 그리고 2026년 현재 시점의 최신 성과와 국제경영 관점에서의 시사점 순으로 진행하겠습니다. 마지막에는 저희가 던지는 3가지 토론 질문을 통해 깊이 있는 인사이트를 나누고자 합니다." },
+        { title: "SECTION 01: 개요", text: "먼저 레고의 현재 위치와 비즈니스 모델을 가볍게 살펴보겠습니다." },
+        { title: "역사 및 BM", text: "레고는 1932년 덴마크에서 시작되었습니다. 90년대 무분별한 다각화로 2004년 파산 위기까지 몰렸었죠. 하지만 Knudstorp 회장 취임 이후 완전한 회복을 넘어 2025년 매출 신기록을 경신했습니다. 레고의 핵심은 <b>'시스템 안의 시스템'</b>이라는 확장성, 강력한 IP, 수직 통합형 가치사슬에 있습니다." },
+        { title: "글로벌 입지", text: "레고의 무기는 KIRKBI 가족 소유 구조입니다. 분기별 실적 압박에서 자유롭기에 <b>'7년 단위'</b> 장기 전략이 가능하죠. 2025년 매출 83.5B DKK를 기록했는데, 압도적인 북미·유럽에 비해 아시아 태평양 시장의 성장이 2.7%로 정체된 점이 특징입니다." },
+        { title: "SECTION 02: 분석", text: "이제 케이스 핵심 질문을 통해 레고의 전략적 선택을 분석해 보겠습니다." },
+        { title: "Q1 파산 위기", text: "2003년 위기의 핵심은 <b>'전략적 정체성 상실'</b>입니다. 역량에도 없는 다각화로 공급망 복잡성이 보잉의 2배 수준까지 폭발했습니다. 외부 요인이 아닌 일관성 상실로 위기를 자초한 것입니다." },
+        { title: "Q2 역설의 지형도", text: "레고의 역사는 곧 역설의 역사입니다. 창의성과 비용통제, 핵심집중과 다각화 사이에서 레고는 이 역설을 해결하려 한 게 아니라 <b>'두 극단이 서로를 강화하도록'</b> 설계하는 탁월함을 보였습니다." },
+        { title: "Q3 재건 3단계", text: "Knudstorp은 현금 관리, 가치 재정립, 성장 관리 3단계로 재건했습니다. <b>'순환 시스템'</b>을 먼저 수리한 후 근육을 키운 셈입니다." },
+        { title: "양손잡이 경영", text: "기존 사업부는 브릭 시스템 효율에 집중하고(Exploit), LEGO Ventures는 미래를 탐색(Explore)하도록 분리했습니다. 탐색 조직의 KPI를 기존 조직과 분리한 것이 성공의 핵심입니다." },
+        { title: "Q4 미래의 역설", text: "미래는 실물과 디지털의 균형, 그리고 <b>'지속가능성'</b>이라는 새로운 역설을 던집니다. 특히 아시아 시장에서의 문화적 적응은 레고가 반드시 풀어야 할 숙제입니다." },
+        { title: "데이터 의사결정", text: "과거 디자이너의 감에 의존하던 운영을 데이터 기반으로 전환했습니다. 이 데이터 주도의 단순화가 창의성을 제약한 것이 아니라, 오히려 <b>낭비를 제거해 진짜 창의성에 집중</b>하게 만들었습니다." },
+        { title: "SECTION 03: 성과", text: "다음으로 2022년부터 2026년까지의 최신 성과를 업데이트하겠습니다." },
+        { title: "재무 성과", text: "완구 시장 전체가 역성장하는 시기에도 레고는 홀로 10% 이상 성장하고 있습니다. 2025년 영업이익률은 26%에 육박합니다." },
+        { title: "전략 행보", text: "포트나이트 협업으로 8,700만 디지털 유저를 확보했고, 베트남과 미국 신규 공장으로 공급망을 재편 중입니다. 다만 지속가능 소재 전환 비용으로 인한 마진 압박 시그널이 있습니다." },
+        { title: "공급망 탄력성", text: "레고의 공급망은 이제 단순한 원가 절감이 아닌 <b>'지정학적 헤지'</b> 수단입니다. 미국의 보호무역과 EU 탄소국경세에 대응하는 Local for Local 전략을 구사하고 있습니다." },
+        { title: "경쟁 환경", text: "마텔과 해즈브로가 고전할 때 레고가 독주하는 비결은, 모방 불가능한 <b>품질 공차</b>와 전 세대를 아우르는 팬덤이라는 해자가 있기 때문입니다." },
+        { title: "SECTION 04: 국제경영", text: "이를 국제경영 프레임워크로 분석해 보겠습니다." },
+        { title: "CAGE 프레임워크", text: "CAGE 관점에서 볼 때 지리적·행정적 거리는 극복했지만, <b>'문화적 거리'</b>는 여전히 높습니다. 서구의 놀이 철학이 아시아의 입시 문화와 충돌하고 있습니다." },
+        { title: "I-R Grid", text: "레고는 전형적인 <b>'초국적 전략'</b> 모델입니다. 브릭 시스템과 품질은 강력하게 표준화하되, IP 테마와 마케팅은 철저히 현지 반응성을 높이는 전략입니다." },
+        { title: "MNE 시사점", text: "다국적 기업에 주는 교훈은 명확합니다. 가족 경영의 장기적 관점, 리스크 헤지 수단으로서의 공급망, 그리고 정체성이 명확할수록 글로벌화가 유리하다는 점입니다." },
+        { title: "SECTION 05: 교훈", text: "발표를 마무리하며 핵심 교훈을 정리하겠습니다." },
+        { title: "5가지 전략 원칙", text: "첫째 전략 전 정체성 정의, 둘째 역설의 관리, 셋째 운영 탁월성, 넷째 문화적 공명, 마지막으로 양손잡이 경영입니다. 이 5가지가 레고의 힘입니다." },
+        { title: "SECTION 06: 토론", text: "이제 여러분과 함께 고민해 보고 싶은 3가지 질문을 던지겠습니다." },
+        { title: "토론 1: 기계 딜레마", text: "첫째는 <b>기계의 딜레마</b>입니다. 역대 최고 실적을 내는 지금, 디지털 체질 개선 속도를 더 높여야 할까요? 아니면 현재의 탐색 비중이 적절할까요?" },
+        { title: "토론 2: 아시아 정의", text: "둘째는 <b>아시아 시장의 정의</b>입니다. 저성장 돌파를 위해 아시아 부모를 계속 설득해야 할까요? 아니면 수학 교구 등으로 포지셔닝을 바꿔야 할까요?" },
+        { title: "토론 3: 지속가능성", text: "셋째는 <b>지속가능성의 진정성</b>입니다. 마진 하락을 감수하며 환경 목표에 올인하는 것이 장기적으로 주주 이익에 부합할까요?" },
+        { title: "CLOSING", text: "<b>'최고의 요리사는 주어진 재료로 최고의 맛을 내는 사람이다.'</b> 레고는 지난 90년 동안 '긴장과 역설'이라는 재료로 최고의 성장을 요리해 왔습니다. 이상으로 6조 발표를 마치겠습니다. 감사합니다." }
+    ];
+
+    let currentSlide = 0;
+    const syncChannel = new BroadcastChannel('lego_sync');
+
+    function goSlide(idx, isExternal = false) {
+        if (idx < 0 || idx >= scripts.length) return;
+        currentSlide = idx;
+
+        // UI Update
+        document.getElementById('s-num').innerText = (currentSlide + 1).toString().padStart(2, '0');
+        document.getElementById('s-title').innerText = scripts[currentSlide].title;
+        document.getElementById('text-view').innerHTML = scripts[currentSlide].text;
+        
+        // Sync index.html (iframe)
+        document.getElementById('slideFrame').contentWindow.postMessage({ slide: currentSlide }, '*');
+        
+        // Sync External Window
+        if(!isExternal) syncChannel.postMessage({ slide: currentSlide });
+
+        // Scroll to top of script area
+        document.getElementById('script-area').scrollTop = 0;
+    }
+
+    // 슬라이드 클릭 이동 (오른쪽 절반: 다음, 왼쪽 절반: 이전)
+    document.getElementById('script-area').onclick = (e) => {
+        const zone = document.getElementById('script-area');
+        if (e.clientX > (window.innerWidth + 300) / 2) goSlide(currentSlide + 1);
+        else goSlide(currentSlide - 1);
+    };
+
+    // External Sync 수신
+    syncChannel.onmessage = (e) => {
+        if (e.data && typeof e.data.slide === 'number') {
+            goSlide(e.data.slide, true);
+        }
+    };
+
+    // Keyboard Control
+    window.onkeydown = (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ') goSlide(currentSlide + 1);
+        if (e.key === 'ArrowLeft') goSlide(currentSlide - 1);
+    };
+
+    // Timers
+    const startTs = Date.now();
+    setInterval(() => {
+        const now = new Date();
+        document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+        const diff = Math.floor((Date.now() - startTs) / 1000);
+        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        document.getElementById('elapsed').innerText = `${h}:${m}:${s}`;
+    }, 1000);
+
+    window.onload = () => goSlide(0);
+</script>
+</body>
+</html>
